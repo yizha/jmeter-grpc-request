@@ -38,7 +38,7 @@ public class ClientCaller {
     private Descriptors.MethodDescriptor methodDescriptor;
     private JsonFormat.TypeRegistry registry;
     private DynamicGrpcClient dynamicClient;
-    private ImmutableList<DynamicMessage> requestMessages;
+    //private ImmutableList<DynamicMessage> requestMessages;
     private ManagedChannel channel;
     private HostAndPort hostAndPort;
     private Map<String, String> metadataMap;
@@ -83,7 +83,7 @@ public class ClientCaller {
             try {
                 fileDescriptorSet = ProtocInvoker.forConfig(testProtoFiles, libFolder).invoke();
             } catch (Exception e) {
-                shutdownNettyChannel();
+                //shutdownNettyChannel();
                 throw new RuntimeException(
                         "Unable to resolve service by invoking protoc: \n" + e.getMessage(), e);
             }
@@ -102,7 +102,7 @@ public class ClientCaller {
                             .add(serviceResolver.listMessageTypes())
                             .build();
         } catch (Throwable t) {
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
             throw t;
         }
     }
@@ -169,26 +169,25 @@ public class ClientCaller {
         return channel.isTerminated();
     }
 
-    public String buildRequestAndMetadata(String jsonData, String metadata) {
+    public ImmutableList<DynamicMessage> buildRequestAndMetadata(String jsonData, String metadata) {
         try {
             metadataMap.clear();
             metadataMap.putAll(buildHashMetadata(metadata));
-            requestMessages =
-                    Reader.create(methodDescriptor.getInputType(), jsonData, registry).read();
-            return JsonFormat.printer()
-                    .includingDefaultValueFields()
-                    .usingTypeRegistry(registry)
-                    .print(requestMessages.get(0));
+            return Reader.create(methodDescriptor.getInputType(), jsonData, registry).read();
+            // return JsonFormat.printer()
+            //         .includingDefaultValueFields()
+            //         .usingTypeRegistry(registry)
+            //         .print(requestMessages.get(0));
         } catch (IllegalArgumentException e) {
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
             throw e;
         } catch (Exception e) {
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
             throw new RuntimeException("Caught exception while parsing request for rpc", e);
         }
     }
 
-    public GrpcResponse call(String deadlineMs) {
+    public GrpcResponse call(String deadlineMs, ImmutableList<DynamicMessage> requestMessages) {
         long deadline = parsingDeadlineTime(deadlineMs);
         GrpcResponse grpcResponse = new GrpcResponse();
         StreamObserver<DynamicMessage> streamObserver =
@@ -206,13 +205,13 @@ public class ClientCaller {
                 ex = e;
             }
             grpcResponse.setThrowable(ex);
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
         }
 
         return grpcResponse;
     }
 
-    public GrpcResponse callServerStreaming(String deadlineMs) {
+    public GrpcResponse callServerStreaming(String deadlineMs, ImmutableList<DynamicMessage> requestMessages) {
         long deadline = parsingDeadlineTime(deadlineMs);
         GrpcResponse grpcResponse = new GrpcResponse();
         StreamObserver<DynamicMessage> streamObserver =
@@ -222,13 +221,13 @@ public class ClientCaller {
                     .callServerStreaming(requestMessages, streamObserver, callOptions(deadline))
                     .get();
         } catch (Exception e) {
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
         }
 
         return grpcResponse;
     }
 
-    public GrpcResponse callClientStreaming(String deadlineMs) {
+    public GrpcResponse callClientStreaming(String deadlineMs, ImmutableList<DynamicMessage> requestMessages) {
         long deadline = parsingDeadlineTime(deadlineMs);
         GrpcResponse output = new GrpcResponse();
         StreamObserver<DynamicMessage> streamObserver =
@@ -238,7 +237,7 @@ public class ClientCaller {
                     .callClientStreaming(requestMessages, streamObserver, callOptions(deadline))
                     .get();
         } catch (Exception e) {
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
             throw new RuntimeException(
                     String.format(
                             "Caught exception while waiting for rpc %s",
@@ -248,7 +247,7 @@ public class ClientCaller {
         return output;
     }
 
-    public GrpcResponse callBidiStreaming(String deadlineMs) {
+    public GrpcResponse callBidiStreaming(String deadlineMs, ImmutableList<DynamicMessage> requestMessages) {
         long deadline = parsingDeadlineTime(deadlineMs);
         GrpcResponse output = new GrpcResponse();
         StreamObserver<DynamicMessage> streamObserver =
@@ -258,7 +257,7 @@ public class ClientCaller {
                     .callBidiStreaming(requestMessages, streamObserver, callOptions(deadline))
                     .get();
         } catch (Exception e) {
-            shutdownNettyChannel();
+            //shutdownNettyChannel();
             throw new RuntimeException(
                     String.format(
                             "Caught exception while waiting for rpc %s",
@@ -311,5 +310,9 @@ public class ClientCaller {
             t = t.getCause();
         }
         return sb.toString();
+    }
+
+    public JsonFormat.TypeRegistry getRegistry() {
+        return this.registry;
     }
 }

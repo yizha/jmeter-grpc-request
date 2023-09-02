@@ -113,7 +113,7 @@ public class ProtocInvoker {
 
         ImmutableList<String> protocArgs =
                 generateProtocArgs(protoFilePaths, descriptorPath, wellKnownTypesInclude);
-
+        //System.out.println(protocArgs);
         invokeBinary(protocArgs);
 
         return generateFileDescriptorSet(descriptorPath);
@@ -206,7 +206,7 @@ public class ProtocInvoker {
         }
     }
 
-    private void invokeBinary(ImmutableList<String> protocArgs) throws ProtocInvocationException {
+private void invokeBinary(ImmutableList<String> protocArgs) throws ProtocInvocationException {
         int status;
         String[] protocInfoLogLines;
         String[] protocErrorLogLines;

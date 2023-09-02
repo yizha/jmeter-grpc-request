@@ -1,8 +1,11 @@
 package vn.zalopay.benchmark.core.client;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mockConstructionWithAnswer;
 
+import com.google.common.collect.ImmutableList;
+import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 
@@ -37,8 +40,8 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanSendGrpcUnaryRequest() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
-        GrpcResponse resp = clientCaller.call("5000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
+        GrpcResponse resp = clientCaller.call("5000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -47,7 +50,7 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanGetShutDownBoolean() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
         Assert.assertEquals(clientCaller.isShutdown(), false);
         Assert.assertEquals(clientCaller.isTerminated(), false);
     }
@@ -55,7 +58,7 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanGetShutDownBooleanAfterShutdown() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
         clientCaller.shutdownNettyChannel();
         Assert.assertEquals(clientCaller.isShutdown(), true);
         Assert.assertEquals(clientCaller.isTerminated(), true);
@@ -64,8 +67,8 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanCallClientStreamingRequest() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
-        GrpcResponse resp = clientCaller.callClientStreaming("5000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
+        GrpcResponse resp = clientCaller.callClientStreaming("5000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -74,8 +77,8 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanCallServerStreamingRequest() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
-        GrpcResponse resp = clientCaller.callServerStreaming("5000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
+        GrpcResponse resp = clientCaller.callServerStreaming("5000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -84,8 +87,8 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanCallBidiStreamingRequest() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
-        GrpcResponse resp = clientCaller.callBidiStreaming("5000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1:1,key2:2");
+        GrpcResponse resp = clientCaller.callBidiStreaming("5000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -94,8 +97,8 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanSendRequestWithNegativeTimeoutRequest() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("-10");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("-10", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -108,8 +111,8 @@ public class ClientCallerTest extends BaseTest {
                             + " if not JsonString but found: key1=1,key2:2")
     public void testCanThrowExceptionWithInvalidMetaData() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1=1,key2:2");
-        GrpcResponse resp = clientCaller.call("2000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, "key1=1,key2:2");
+        GrpcResponse resp = clientCaller.call("2000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -118,8 +121,8 @@ public class ClientCallerTest extends BaseTest {
     @Test
     public void testCanSendGrpcUnaryRequestWithMetaData() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("2000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("2000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -129,10 +132,10 @@ public class ClientCallerTest extends BaseTest {
     public void testCanSendGrpcUnaryRequestWithEncodedMetaData()
             throws UnsupportedEncodingException {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(
                 REQUEST_JSON,
                 "tracestate:" + URLEncoder.encode("a=3,b:4", StandardCharsets.UTF_8.name()));
-        GrpcResponse resp = clientCaller.call("2000");
+        GrpcResponse resp = clientCaller.call("2000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -150,8 +153,8 @@ public class ClientCallerTest extends BaseTest {
                         true,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("10000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("10000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -169,8 +172,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("10000");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("10000", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -216,8 +219,8 @@ public class ClientCallerTest extends BaseTest {
                             false,
                             DEFAULT_CHANNEL_SHUTDOWN_TIME);
             clientCaller = new ClientCaller(grpcRequestConfig);
-            clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-            GrpcResponse resp = clientCaller.call("10000");
+            ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+            GrpcResponse resp = clientCaller.call("10000", req);
             clientCaller.shutdownNettyChannel();
             Assert.assertNotNull(resp);
             Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -229,8 +232,8 @@ public class ClientCallerTest extends BaseTest {
             expectedExceptionsMessageRegExp = "Caught exception while parsing deadline to long")
     public void testThrowExceptionWithInvalidTimeoutFormat() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        clientCaller.call("1000s");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        clientCaller.call("1000s", req);
     }
 
     @Test(
@@ -238,8 +241,8 @@ public class ClientCallerTest extends BaseTest {
             expectedExceptionsMessageRegExp = "Caught exception while parsing deadline to long")
     public void testThrowExceptionWithBlankTimeoutFormat() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        clientCaller.call(" ");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        clientCaller.call(" ", req);
     }
 
     @Test(
@@ -247,8 +250,8 @@ public class ClientCallerTest extends BaseTest {
             expectedExceptionsMessageRegExp = "Caught exception while parsing deadline to long")
     public void testThrowExceptionWithEmptyTimeoutFormat() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        clientCaller.call("");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        clientCaller.call("", req);
     }
 
     @Test(
@@ -256,8 +259,8 @@ public class ClientCallerTest extends BaseTest {
             expectedExceptionsMessageRegExp = "Caught exception while parsing deadline to long")
     public void testThrowExceptionWithNullTimeoutFormat() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        clientCaller.call(null);
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        clientCaller.call(null, req);
     }
 
     @Test(
@@ -265,9 +268,9 @@ public class ClientCallerTest extends BaseTest {
             expectedExceptionsMessageRegExp = "Caught exception while parsing request for rpc")
     public void testThrowExceptionWithInvalidRequestJson() {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(
                 "{shelf:{\"id\":1599156420811,\"theme\":\"Hello server!!\".}}", METADATA);
-        clientCaller.call("1000");
+        clientCaller.call("1000", req);
     }
 
     @Test(
@@ -280,9 +283,9 @@ public class ClientCallerTest extends BaseTest {
                 .when(JsonFormat::printer)
                 .then((i) -> new InvalidProtocolBufferException("Dummy Exception"));
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(
                 "{shelf:{\"id\":1599156420811,\"theme\":\"Hello server!!\".}}", METADATA);
-        clientCaller.call("1000");
+        clientCaller.call("1000", req);
     }
 
     @Test(
@@ -366,8 +369,8 @@ public class ClientCallerTest extends BaseTest {
             expectedExceptionsMessageRegExp = "DEADLINE_EXCEEDED: .*")
     public void testThrowExceptionWithTimeoutRequest() throws Throwable {
         clientCaller = new ClientCaller(DEFAULT_GRPC_REQUEST_CONFIG);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("1");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("1", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         throw resp.getThrowable();
@@ -387,8 +390,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.callServerStreaming("1");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.callServerStreaming("1", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         throw resp.getThrowable();
@@ -408,8 +411,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.callClientStreaming("1");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.callClientStreaming("1", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -429,8 +432,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.callBidiStreaming("1");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.callBidiStreaming("1", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -485,8 +488,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("10");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("10", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -506,8 +509,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("10");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("10", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -527,8 +530,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("10");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("10", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
@@ -549,8 +552,8 @@ public class ClientCallerTest extends BaseTest {
                         false,
                         DEFAULT_CHANNEL_SHUTDOWN_TIME);
         clientCaller = new ClientCaller(grpcRequestConfig);
-        clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
-        GrpcResponse resp = clientCaller.call("10");
+        ImmutableList<DynamicMessage> req = clientCaller.buildRequestAndMetadata(REQUEST_JSON, METADATA);
+        GrpcResponse resp = clientCaller.call("10", req);
         clientCaller.shutdownNettyChannel();
         Assert.assertNotNull(resp);
         Assert.assertTrue(resp.getGrpcMessageString().contains("\"theme\": \"Hello server"));
