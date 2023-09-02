@@ -23,6 +23,7 @@ import vn.zalopay.benchmark.core.specification.GrpcResponse;
 import vn.zalopay.benchmark.util.ExceptionUtils;
 
 import java.nio.charset.StandardCharsets;
+//import java.util.concurrent.locks.ReentrantLock;
 
 public class GRPCSampler extends AbstractSampler implements ThreadListener, TestStateListener {
 
@@ -44,7 +45,8 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
             "GRPCSampler" + ".maxInboundMessageSize";
     public static final String CHANNEL_MAX_INBOUND_METADATA_SIZE =
             "GRPCSampler.maxInboundMetadataSize";
-    private transient ClientCaller clientCaller;
+    private static transient ClientCaller clientCaller;
+    //private static transient ReentrantLock lock = new ReentrantLock();
     //private GrpcRequestConfig grpcRequestConfig;
 
     public GRPCSampler() {
@@ -342,7 +344,6 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
         log.info("testStarted {}", s);
         if (clientCaller != null) {
             clientCaller.shutdownNettyChannel();
-            clientCaller = null;
         }
         GrpcRequestConfig grpcCallerConf = GrpcRequestConfig.builder()
                             .hostPort(getHostPort())
@@ -356,7 +357,6 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
                             .maxInboundMetadataSize(getChannelMaxInboundMetadataSize())
                             .build();
         clientCaller = new ClientCaller(grpcCallerConf);
-        //log.info("testStated, grpc conf: {}", conf);
     }
 
     @Override
