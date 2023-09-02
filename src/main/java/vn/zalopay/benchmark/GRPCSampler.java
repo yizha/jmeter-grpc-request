@@ -11,6 +11,10 @@ import org.apache.jmeter.testelement.ThreadListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.util.JsonFormat;
+
 import vn.zalopay.benchmark.constant.GrpcSamplerConstant;
 import vn.zalopay.benchmark.core.ClientCaller;
 import vn.zalopay.benchmark.core.config.GrpcRequestConfig;
@@ -41,7 +45,7 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
     public static final String CHANNEL_MAX_INBOUND_METADATA_SIZE =
             "GRPCSampler.maxInboundMetadataSize";
     private transient ClientCaller clientCaller;
-    private GrpcRequestConfig grpcRequestConfig;
+    //private GrpcRequestConfig grpcRequestConfig;
 
     public GRPCSampler() {
         super();
@@ -60,39 +64,40 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
         log.debug("{} ({}) {} {}", threadName, getTitle(), s, this);
     }
 
-    private void initGrpcConfigRequest() {
-        if (grpcRequestConfig == null)
-            grpcRequestConfig =
-                    GrpcRequestConfig.builder()
-                            .hostPort(getHostPort())
-                            .protoFolder(getProtoFolder())
-                            .libFolder(getLibFolder())
-                            .fullMethod(getFullMethod())
-                            .tls(isTls())
-                            .tlsDisableVerification(isTlsDisableVerification())
-                            .awaitTerminationTimeout(getChannelShutdownAwaitTime())
-                            .maxInboundMessageSize(getChannelMaxInboundMessageSize())
-                            .maxInboundMetadataSize(getChannelMaxInboundMetadataSize())
-                            .build();
-    }
+    // private void initGrpcConfigRequest() {
+    //     if (grpcRequestConfig == null)
+    //         grpcRequestConfig =
+    //                 GrpcRequestConfig.builder()
+    //                         .hostPort(getHostPort())
+    //                         .protoFolder(getProtoFolder())
+    //                         .libFolder(getLibFolder())
+    //                         .fullMethod(getFullMethod())
+    //                         .tls(isTls())
+    //                         .tlsDisableVerification(isTlsDisableVerification())
+    //                         .awaitTerminationTimeout(getChannelShutdownAwaitTime())
+    //                         .maxInboundMessageSize(getChannelMaxInboundMessageSize())
+    //                         .maxInboundMetadataSize(getChannelMaxInboundMetadataSize())
+    //                         .build();
+    // }
 
-    private void initGrpcClient() {
-        if (clientCaller == null) {
-            clientCaller = new ClientCaller(grpcRequestConfig);
-        }
-    }
+    // private void initGrpcClient() {
+    //     if (clientCaller == null) {
+    //         clientCaller = new ClientCaller(grpcRequestConfig);
+    //     }
+    // }
 
     @Override
     public SampleResult sample(Entry ignored) {
         SampleResult sampleResult = new SampleResult();
         sampleResult.setSampleLabel(getName());
 
-        if (!initGrpcRequestSampler(sampleResult)) {
-            return sampleResult;
-        }
+        // if (!initGrpcRequestSampler(sampleResult)) {
+        //     return sampleResult;
+        // }
+        ImmutableList<DynamicMessage> grpcRequest = initGrpcInCurrentThread(sampleResult);
 
         // Initiate a GRPC request
-        processGrpcRequestSampler(sampleResult);
+        processGrpcRequestSampler(sampleResult, grpcRequest);
 
         return sampleResult;
     }
@@ -110,14 +115,14 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
     @Override
     public void threadFinished() {
         log.debug("\ttestEnded: {}", whoAmI());
-        if (clientCaller != null) {
-            clientCaller.shutdownNettyChannel();
-            clientCaller = null;
-        }
+        // if (clientCaller != null) {
+        //     clientCaller.shutdownNettyChannel();
+        //     clientCaller = null;
+        // }
         // clear state of grpc config for rerun with new config in GUI mode
-        if (grpcRequestConfig != null) {
-            grpcRequestConfig = null;
-        }
+        // if (grpcRequestConfig != null) {
+        //     grpcRequestConfig = null;
+        // }
     }
 
     private String whoAmI() {
@@ -128,16 +133,16 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
                 + getName();
     }
 
-    private boolean initGrpcRequestSampler(SampleResult sampleResult) {
-        try {
-            initGrpcInCurrentThread(sampleResult);
-        } catch (Exception e) {
-            log.error(ExceptionUtils.getPrintExceptionToStr(e, null), "UTF-8");
-            generateErrorResultInInitGRPCRequest(sampleResult, e);
-            return false;
-        }
-        return true;
-    }
+    // private boolean initGrpcRequestSampler(SampleResult sampleResult) {
+    //     try {
+    //         initGrpcInCurrentThread(sampleResult);
+    //     } catch (Exception e) {
+    //         log.error(ExceptionUtils.getPrintExceptionToStr(e, null), "UTF-8");
+    //         generateErrorResultInInitGRPCRequest(sampleResult, e);
+    //         return false;
+    //     }
+    //     return true;
+    // }
 
     private void generateErrorResultInInitGRPCRequest(SampleResult sampleResult, Exception e) {
         sampleResult.setSuccessful(false);
@@ -147,8 +152,8 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
         sampleResult.setResponseData(ExceptionUtils.getPrintExceptionToStr(e, null), "UTF-8");
     }
 
-    private void processGrpcRequestSampler(SampleResult sampleResult) {
-        GrpcResponse grpcResponse = clientCaller.call(getDeadline());
+    private void processGrpcRequestSampler(SampleResult sampleResult, ImmutableList<DynamicMessage> requestMessages) {
+        GrpcResponse grpcResponse = clientCaller.call(getDeadline(), requestMessages);
         sampleResult.sampleEnd();
         sampleResult.setDataType(SampleResult.TEXT);
         if (grpcResponse.isSuccess()) {
@@ -198,13 +203,22 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
         sampleResult.setResponseData(responseMessage, "UTF-8");
     }
 
-    private void initGrpcInCurrentThread(SampleResult sampleResult) {
-        initGrpcConfigRequest();
-        initGrpcClient();
-        String grpcRequest = clientCaller.buildRequestAndMetadata(getRequestJson(), getMetadata());
-        sampleResult.setSamplerData(grpcRequest);
+    private ImmutableList<DynamicMessage> initGrpcInCurrentThread(SampleResult sampleResult) {
+        //initGrpcConfigRequest();
+        //initGrpcClient();
+        ImmutableList<DynamicMessage> grpcRequest = clientCaller.buildRequestAndMetadata(getRequestJson(), getMetadata());
+        try {
+            String reqStr = JsonFormat.printer()
+                        .includingDefaultValueFields()
+                        .usingTypeRegistry(clientCaller.getRegistry())
+                        .print(grpcRequest.get(0));
+            sampleResult.setSamplerData(reqStr);
+        } catch (Exception e) {
+            generateErrorResultInInitGRPCRequest(sampleResult, e);
+        }
         sampleResult.setRequestHeaders(clientCaller.getMetadataString());
         sampleResult.sampleStart();
+        return grpcRequest;
     }
 
     /** GETTER AND SETTER */
@@ -316,25 +330,47 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
         return getHost() + ":" + getPort();
     }
 
+    private static final String LOCAL = "local";
+
     @Override
     public void testStarted() {
-        log.info("testStarted");
+        testStarted(LOCAL);
     }
 
     @Override
     public void testStarted(String s) {
         log.info("testStarted {}", s);
+        if (clientCaller != null) {
+            clientCaller.shutdownNettyChannel();
+            clientCaller = null;
+        }
+        GrpcRequestConfig grpcCallerConf = GrpcRequestConfig.builder()
+                            .hostPort(getHostPort())
+                            .protoFolder(getProtoFolder())
+                            .libFolder(getLibFolder())
+                            .fullMethod(getFullMethod())
+                            .tls(isTls())
+                            .tlsDisableVerification(isTlsDisableVerification())
+                            .awaitTerminationTimeout(getChannelShutdownAwaitTime())
+                            .maxInboundMessageSize(getChannelMaxInboundMessageSize())
+                            .maxInboundMetadataSize(getChannelMaxInboundMetadataSize())
+                            .build();
+        clientCaller = new ClientCaller(grpcCallerConf);
+        //log.info("testStated, grpc conf: {}", conf);
     }
 
     @Override
     public void testEnded() {
-        log.info("testEnded");
-        ProtocInvoker.cleanTempFolderForGeneratingProtoc();
+        testEnded(LOCAL);
     }
 
     @Override
     public void testEnded(String s) {
         log.info("testEnded {}", s);
+        if (clientCaller != null) {
+            clientCaller.shutdownNettyChannel();
+            clientCaller = null;
+        }
         ProtocInvoker.cleanTempFolderForGeneratingProtoc();
     }
 }
